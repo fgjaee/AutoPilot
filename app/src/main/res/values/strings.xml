@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AutoPilot</string>
+    <string name="accessibility_description">Allow AutoPilot to inspect app screens and perform actions for your requested automations.</string>
+    <string-array name="xposed_scope"><item>com.meijer.mobile.meijer</item></string-array>
+</resources>
