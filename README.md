@@ -1,7 +1,5 @@
 # AutoPilot
 
-Native Android automation hub for KernelSU / Accessibility / app-scoped LSPosed integration.
+Native Android automation hub. Current v0.3 build includes Accessibility, KernelSU root tools, and passive Meijer-scoped LSPosed coupon request tracing. No account credentials or Meijer binaries are stored here.
 
-This repository is being initialized with native v0.3, starting with a passive Meijer coupon request observer. No accounts, APKs, credentials, or traffic captures are committed.
-
-The first APK is built by GitHub Actions; check the Actions tab for an installable debug artifact.
+Build APK in GitHub Actions (`AutoPilot-debug`).
