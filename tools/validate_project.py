@@ -27,6 +27,8 @@ for tool in ('inspect_ui','tap_text','tap_element','scroll','launch_app','root_s
 assert 'ProcessBuilder("su", "-c", command)' in tools
 assert 'tool_calls' in agent
 assert 'androidx.work' in (root / 'app/build.gradle.kts').read_text()
+assert 'Confirm APK matches cached signing certificate' in (root / '.github/workflows/android.yml').read_text()
+assert 'storeFile = file("$ciHome/.android/debug.keystore")' in (root / 'app/build.gradle.kts').read_text()
 assert 'actions/upload-artifact' in (root / '.github/workflows/android.yml').read_text()
 assert 'api_key' not in (root / 'gradle.properties').read_text().lower()
 print('Core modules / tool definitions / build workflow: OK')

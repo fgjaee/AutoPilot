@@ -11,8 +11,22 @@ android {
         applicationId = "com.fgjaee.autopilot"
         minSdk = 29
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "0.6.0"
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            // CI must use the restored signer. Gradle's implicit debug key would
+            // otherwise silently rotate on every ephemeral runner.
+            val ciHome = System.getenv("HOME")
+            if (System.getenv("GITHUB_ACTIONS") == "true" && !ciHome.isNullOrBlank()) {
+                storeFile = file("$ciHome/.android/debug.keystore")
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
     }
 
     buildTypes {

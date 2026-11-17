@@ -1,9 +1,9 @@
 # AutoPilot signing continuity
 
-The current v0.3 installation and later GitHub Action debug builds have **different certificates**. Android ordinary updates require the same signing certificate; **do not uninstall v0.3** to address this.
+The v0.3, v0.4, and v0.5 APKs were compiled on ephemeral runners and had **different certificates**. Android ordinary updates require the same signing certificate; **do not uninstall v0.3** to address this.
 
 ## Immediate continuity guard
-The Android CI workflow now restores `autopilot-dev-signing-v1` from the existing GitHub Actions cache and **fails if the cached signer is missing**, rather than silently generating another incompatible APK. This keeps development builds aligned with the v0.4+ debug signer while that cache exists.
+Beginning with v0.6, Gradle is explicitly configured to sign using the restored key. GitHub Actions compares the final APK certificate SHA-256 fingerprint with the keystore certificate, failing the build on any mismatch. The Android CI workflow restores `autopilot-dev-signing-v1` from the existing GitHub Actions cache and **fails if the cached signer is missing**, rather than silently generating another incompatible APK. This keeps development builds aligned with the v0.4+ debug signer while that cache exists.
 
 This cache is **not** suitable as a permanent, securely backed-up production signing key, especially since the GitHub repository is public.
 
@@ -15,3 +15,6 @@ This cache is **not** suitable as a permanent, securely backed-up production sig
 5. Future release APKs then update normally.
 
 No legacy v0.3 private signing key was recovered and no release signing secrets have yet been provisioned.
+
+### Verification correction
+v0.5 compiled but its APK still had an ephemeral Android Debug certificate. It must **not** be used as the migration target. v0.6 adds explicit signing and fingerprint validation.
