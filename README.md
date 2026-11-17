@@ -1,19 +1,16 @@
-# AutoPilot Native v0.4 — Meijer Clip request-shape observer
+# AutoPilot Native v0.5 — Unified Android automation hub
 
-## Verified on device · November 17, 2026
-- LSPosed observer attached to the installed Meijer process.
-- One manual coupon clip generated POST /offers/Clip and HTTP 200.
-- HTTP 200 indicates an accepted HTTP request, not yet verified persistent clipping.
+AutoPilot is **one native Android app**, with **one shared LSPosed entry point** dispatching to app-specific adapters. Each saved automation is a workflow, **not a separate APK**.
 
-## Update
-The Meijer-only passive hook can inspect small replayable JSON bodies, logging **field names and types only**. Raw body values, authentication headers, URLs with queries, coupon IDs and account IDs are not logged. Streaming, one-shot, non-JSON and large bodies are skipped. The observer never modifies Meijer requests or responses.
+## Integrated
+- Meijer mPerks: passive network observer verified on a real device, POST /offers/Clip and HTTP 200. Captures redacted request shape, not raw values. Clip All is **not** implemented yet.
+- Achievers / Workday / SmartSense: discovery slots only. Actual app packages and integrations must be verified before activating hooks.
+- Core: Android Accessibility, KernelSU/root, scheduled saved workflows, optional AI provider.
 
-## Test
-1. Install the APK from GitHub Actions.
-2. Keep LSPosed scoped to Meijer only.
-3. Force-stop and reopen Meijer to load the new hook.
-4. Manually clip one coupon.
-5. Open AutoPilot and press **Read last Meijer clip request trace · root**.
-6. Look for body_shape=... and status=200, and share the output.
+## LSPosed
+AutoPilotBridge is the *only* Xposed entry point. Add each new app's package to the existing AutoPilot module's LSPosed scope **once**, then use workflows without new APKs or HMA entries. Meijer remains the only currently implemented adapter.
 
-Automatic Clip All is not implemented yet. Workday, Achievers, SmartSense app-specific integrations remain future milestones.
+## Signing / upgrades
+The installed v0.3 APK has a different certificate from v0.4+. **Do not uninstall v0.3 just to try updates.** GitHub Actions now refuses to generate a new debug key if the previously cached development signing key is missing. The cached debug key is temporary, not production signing infrastructure; see docs/SIGNING.md.
+
+One-time signature migration from v0.3 may be possible with a compatible CorePatch setup. Until verified, keep your current installation and configuration intact.

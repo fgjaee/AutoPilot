@@ -22,13 +22,15 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  * Logs HTTP method + path, bounded JSON field NAMES/TYPES, and HTTP status only.
  * No URLs with queries, no headers, no credential or data values.
  */
-public final class MeijerNetworkHook implements IXposedHookLoadPackage {
+public final class MeijerNetworkHook implements AppTargetAdapter {
     private static final String TARGET = "com.meijer.mobile.meijer";
     private static final String TAG = "AutoPilotMeijer";
     private static final AtomicInteger EVENTS = new AtomicInteger(0);
     private static final int MAX_EVENTS = 100;
 
-    @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lp) {
+    @Override public String packageName() { return TARGET; }
+
+    @Override public void onPackageLoaded(XC_LoadPackage.LoadPackageParam lp) {
         if (!TARGET.equals(lp.packageName)) return;
         Log.i(TAG, "observer attached to Meijer process=" + lp.processName);
         final ClassLoader cl = lp.classLoader;

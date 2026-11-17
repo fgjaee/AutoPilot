@@ -1,4 +1,7 @@
 name: Android APK
+concurrency:
+  group: autopilot-debug-signing
+  cancel-in-progress: false
 on:
   push:
     branches: [main]
@@ -27,18 +30,22 @@ jobs:
           echo "Using SDK manager: $MANAGER"
           yes | "$MANAGER" --licenses >/dev/null || true
           "$MANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Restore development signing key
-        uses: actions/cache@v4
+      - name: Restore known development signing key
+        id: signing
+        uses: actions/cache/restore@v4
         with:
           path: ~/.android/debug.keystore
           key: autopilot-dev-signing-v1
-      - name: Initialize development signing key
+      - name: Enforce signing-key continuity
         shell: bash
         run: |
-          mkdir -p "$HOME/.android"
-          if [ ! -f "$HOME/.android/debug.keystore" ]; then
-            keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=AutoPilot Dev,O=AutoPilot,C=US"
+          set -euo pipefail
+          if [[ "${{ steps.signing.outputs.cache-hit }}" != "true" || ! -s "$HOME/.android/debug.keystore" ]]; then
+            echo "::error::Known debug signer missing: refusing to create a mismatched update."
+            exit 1
           fi
+          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey >/dev/null
+          echo "Existing development signer restored."
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
@@ -47,13 +54,7 @@ jobs:
       - name: Validate LSPosed observer integration
         run: python3 tools/validate_meijer_trace.py
       - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug :meijerprobe:assembleDebug
-      - name: Upload independent Meijer probe APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: AutoPilot-Meijer-Probe
-          path: meijerprobe/build/outputs/apk/debug/meijerprobe-debug.apk
-          if-no-files-found: error
+        run: gradle --no-daemon :app:assembleDebug
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:

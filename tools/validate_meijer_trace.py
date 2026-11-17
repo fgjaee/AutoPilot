@@ -4,7 +4,10 @@ import xml.etree.ElementTree as ET
 root=Path(__file__).resolve().parents[1]
 manifest=root/'app/src/main/AndroidManifest.xml'
 ET.parse(manifest)
-assert (root/'app/src/main/assets/xposed_init').read_text().strip()=='com.fgjaee.autopilot.MeijerNetworkHook'
+assert (root/'app/src/main/assets/xposed_init').read_text().strip()=='com.fgjaee.autopilot.AutoPilotBridge'
+bridge=(root/'app/src/main/java/com/fgjaee/autopilot/AutoPilotBridge.java').read_text()
+assert 'new MeijerNetworkHook()' in bridge
+assert 'adapter.packageName().equals(lp.packageName)' in bridge
 java=(root/'app/src/main/java/com/fgjaee/autopilot/MeijerNetworkHook.java').read_text()
 assert 'com.meijer.mobile.meijer' in java
 assert 'hookAllMethods(type, "sendRequest"' in java

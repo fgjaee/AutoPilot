@@ -149,11 +149,14 @@ class MainActivity : Activity() {
             runAsync("Battery") { tools.execute("battery_status").toString(2) }
         }
 
-        heading("Other app integrations")
+        heading("Integrations · One LSPosed bridge")
         TextView(this).apply {
-            text = "Achievers · Workday · SmartSense — adapters will share this native Android engine. No app-specific actions are enabled until verified."
+            text = "Meijer is connected through the shared bridge. Achievers, Workday and SmartSense are planned adapters; no hooks are enabled for them yet."
             textSize = 14f
             column.addView(this)
+        }
+        button("Discover installed automation targets") {
+            runAsync("Integration discovery") { IntegrationCatalog.report(this) }
         }
 
         heading("AI provider · OpenAI-compatible tool calling")
