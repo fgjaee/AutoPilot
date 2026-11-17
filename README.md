@@ -1,29 +1,19 @@
-# AutoPilot Native v0.3 — Meijer request shape observer
+# AutoPilot Native v0.4 — Meijer Clip request-shape observer
 
-Native Android launcher + Accessibility + KernelSU utilities and a Meijer-scoped, **passive LSPosed observer**.
+## Verified on device · November 17, 2026
+- LSPosed observer attached to the installed Meijer process.
+- One manual coupon clip generated POST /offers/Clip and HTTP 200.
+- HTTP 200 indicates an accepted HTTP request, not yet verified persistent clipping.
 
-## Evidence from installed Meijer 2026.11.2 APK
+## Update
+The Meijer-only passive hook can inspect small replayable JSON bodies, logging **field names and types only**. Raw body values, authentication headers, URLs with queries, coupon IDs and account IDs are not logged. Streaming, one-shot, non-JSON and large bodies are skipped. The observer never modifies Meijer requests or responses.
 
-- React Native / Hermes bytecode, with `api/offers/Clip`, `clipOffer`, and `clipOfferRequestSchema` identifiers.
-- Android DEX contains `com.facebook.react.modules.network.NetworkingModule`, `OkHttpClientProvider`, and `okhttp3` classes.
-- **Not yet confirmed**: live request URL, method, body schema, account auth flow, success status, or batch semantics.
+## Test
+1. Install the APK from GitHub Actions.
+2. Keep LSPosed scoped to Meijer only.
+3. Force-stop and reopen Meijer to load the new hook.
+4. Manually clip one coupon.
+5. Open AutoPilot and press **Read last Meijer clip request trace · root**.
+6. Look for body_shape=... and status=200, and share the output.
 
-## Build
-
-Gradle 8.11.1, JDK 17, Android SDK 35. GitHub Actions `.github/workflows/android.yml` produces `AutoPilot-debug` APK artifact on push.
-
-## Capture one user-initiated Clip
-
-1. Install the built AutoPilot APK; open from home screen.
-2. LSPosed Manager > Modules > AutoPilot > enable; scope **only** `com.meijer.mobile.meijer`. Force-stop and reopen Meijer to activate the hooks.
-3. In Meijer app, manually clip **one** coupon (do not clip all yet).
-4. Open AutoPilot and select **Read last Meijer clip request trace · root**. Export/copy the output and share it for analysis.
-5. Expected lines tagged `AutoPilotMeijer` include `rn_sendRequest_hook_ready` / `okhttp_hooks_ready`, `path=/api/offers/Clip`, `json_keys=...`, and potentially `status=200`. The actual endpoint may differ.
-
-Observer never alters requests or responses and logs no header values, cookies, tokens, account identifiers, or body values. It purposely does not support auto clipping yet.
-
-If no Clip event appears, collect **only** `AutoPilotMeijer` lines and the output of `pm path com.meijer.mobile.meijer`; the app may use another network pipeline or scope could be inactive.
-
-## Current scope
-
-Workday, Achievers, SmartSense adapters are NOT implemented. This build adds instrumentation only; `Clip All` comes after the request/response shape is verified. Do not run the slow Termux OCR clipper for this diagnostic.
+Automatic Clip All is not implemented yet. Workday, Achievers, SmartSense app-specific integrations remain future milestones.

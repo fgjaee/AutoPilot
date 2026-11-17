@@ -19,7 +19,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
  * PASSIVE Meijer-only hook. Never changes a request or a response.
- * Logs HTTP method + path, body JSON KEY NAMES, and HTTP status only.
+ * Logs HTTP method + path, bounded JSON field NAMES/TYPES, and HTTP status only.
  * No URLs with queries, no headers, no credential or data values.
  */
 public final class MeijerNetworkHook implements IXposedHookLoadPackage {
@@ -71,8 +71,8 @@ public final class MeijerNetworkHook implements IXposedHookLoadPackage {
                         String url = String.valueOf(XposedHelpers.callMethod(request, "url"));
                         if (!isClip(url, null)) return;
                         String method = String.valueOf(XposedHelpers.callMethod(request, "method"));
-                        // Deliberately do not read RequestBody or HTTP headers.
-                        emit("okhttp_request", method, url, "", "");
+                        String shape = safeRequestShape(request, cl);
+                        emit("okhttp_request", method, url, "", shape);
                     } catch (Throwable ignored) { }
                 }
             });
@@ -96,6 +96,89 @@ public final class MeijerNetworkHook implements IXposedHookLoadPackage {
             }
             Log.i(TAG, "okhttp_hooks_ready");
         } catch (Throwable e) { Log.i(TAG, "okhttp_hook_unavailable:" + e.getClass().getSimpleName()); }
+    }
+
+
+    // Small, repeatable JSON request bodies only. No headers or raw values logged.
+    private static String safeRequestShape(Object request, ClassLoader loader) {
+        try {
+            Object body = XposedHelpers.callMethod(request, "body");
+            if (body == null) return "body_shape=empty";
+            Object media = XposedHelpers.callMethod(body, "contentType");
+            if (media == null || !media.toString().toLowerCase(Locale.ROOT).contains("json"))
+                return "body_shape=non_json";
+            long length = ((Number) XposedHelpers.callMethod(body, "contentLength")).longValue();
+            if (length < 0 || length > 16384) return "body_shape=skipped_length";
+            try {
+                if (Boolean.TRUE.equals(XposedHelpers.callMethod(body, "isOneShot")))
+                    return "body_shape=skipped_one_shot";
+                if (Boolean.TRUE.equals(XposedHelpers.callMethod(body, "isDuplex")))
+                    return "body_shape=skipped_duplex";
+            } catch (Throwable ignored) { return "body_shape=unsupported_body_type"; }
+            Class<?> bufferClass = XposedHelpers.findClassIfExists("okio.Buffer", loader);
+            if (bufferClass == null) return "body_shape=no_buffer_class";
+            Object buffer = XposedHelpers.newInstance(bufferClass);
+            XposedHelpers.callMethod(body, "writeTo", buffer);
+            if (((Number) XposedHelpers.callMethod(buffer, "size")).longValue() > 16384)
+                return "body_shape=skipped_size";
+            String raw = (String) XposedHelpers.callMethod(buffer, "readUtf8");
+            return "body_shape=" + jsonShape(raw);
+        } catch (Throwable ignored) { return "body_shape=unavailable"; }
+    }
+
+    private static String jsonShape(String raw) {
+        try {
+            if (raw == null || raw.length() > 16384) return "unavailable";
+            Object parsed = new org.json.JSONTokener(raw).nextValue();
+            List<String> fields = new ArrayList<>();
+            collectShape(parsed, "", 0, fields);
+            Collections.sort(fields);
+            String data = String.join(",", fields);
+            return data.length() > 700 ? data.substring(0,700) + ",truncated" : data;
+        } catch (Throwable ignored) { return "invalid_json"; }
+    }
+
+    private static void collectShape(Object obj, String prefix, int depth, List<String> fields) {
+        if (depth > 3 || fields.size() >= 36) return;
+        if (obj instanceof JSONObject) {
+            JSONObject json = (JSONObject) obj;
+            for (java.util.Iterator<String> it = json.keys(); it.hasNext() && fields.size() < 36;) {
+                String key = it.next();
+                if (!safeField(key)) continue;
+                String path = prefix.isEmpty() ? key : prefix + "." + key;
+                Object v = json.opt(key);
+                if (v instanceof JSONObject) {
+                    fields.add(path + ":object");
+                    collectShape(v, path, depth + 1, fields);
+                } else if (v instanceof org.json.JSONArray) {
+                    fields.add(path + ":array");
+                    org.json.JSONArray a = (org.json.JSONArray) v;
+                    if (a.length() > 0) collectShape(a.opt(0), path + "[]", depth + 1, fields);
+                } else {
+                    fields.add(path + ":" + valueType(v));
+                }
+            }
+        } else if (obj instanceof org.json.JSONArray) {
+            org.json.JSONArray a = (org.json.JSONArray) obj;
+            fields.add(prefix.isEmpty() ? "root:array" : prefix + ":array");
+            if (a.length() > 0) collectShape(a.opt(0), prefix + "[]", depth + 1, fields);
+        }
+    }
+
+    private static String valueType(Object value) {
+        if (value == null || value == JSONObject.NULL) return "null";
+        if (value instanceof Boolean) return "boolean";
+        if (value instanceof Number) return "number";
+        return "string";
+    }
+
+    private static boolean safeField(String key) {
+        if (key == null || !key.matches("[A-Za-z][A-Za-z0-9_]{0,39}")) return false;
+        String lower = key.toLowerCase(Locale.ROOT);
+        for (String denied : new String[]{"password","auth","token","cookie","secret","email","session","credential"}) {
+            if (lower.contains(denied)) return false;
+        }
+        return true;
     }
 
     static boolean isClip(String url, Object data) {
