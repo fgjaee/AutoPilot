@@ -14,4 +14,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "AutoPilot"
-include(":app")
+include(":app", ":meijerprobe")
