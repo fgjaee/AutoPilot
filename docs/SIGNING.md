@@ -18,3 +18,6 @@ No legacy v0.3 private signing key was recovered and no release signing secrets 
 
 ### Verification correction
 v0.5 compiled but its APK still had an ephemeral Android Debug certificate. It must **not** be used as the migration target. v0.6 adds explicit signing and fingerprint validation.
+
+### v0.8 verifier
+The v0.7 job successfully re-signed the APK but failed to parse apksigner's text output. v0.8 compares the DER certificate embedded in the APK Signing Block with the restored keystore's DER certificate using Python's standard library. `apksigner verify` separately validates the cryptographic signature.

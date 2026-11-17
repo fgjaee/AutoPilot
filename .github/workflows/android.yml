@@ -66,15 +66,9 @@ jobs:
           test -n "$APKSIGNER" && test -s "$KEYSTORE"
           "$APKSIGNER" sign --ks "$KEYSTORE" --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android --out "$APK.resigned" "$APK"
           mv "$APK.resigned" "$APK"
-          EXPECTED="$(keytool -exportcert -keystore "$KEYSTORE" -alias androiddebugkey -storepass android 2>/dev/null | sha256sum | awk '{print $1}')"
-          ACTUAL="$("$APKSIGNER" verify --print-certs "$APK" | awk '/Signer #1 certificate SHA-256 digest:/ {print $NF;exit}')"
-          echo "Restored signing certificate SHA256: $EXPECTED"
-          echo "Built APK certificate SHA256:        $ACTUAL"
-          [[ -n "$EXPECTED" && "$EXPECTED" = "$ACTUAL" ]] || {
-            echo "::error::AutoPilot APK signing certificate mismatch after re-signing."
-            exit 1
-          }
-          echo "Verified APK signer matches restored development keystore."
+          "$APKSIGNER" verify "$APK"
+          keytool -exportcert -keystore "$KEYSTORE" -alias androiddebugkey -storepass android > "$RUNNER_TEMP/autopilot-signer.der"
+          python3 tools/verify_apk_signing.py "$APK" "$RUNNER_TEMP/autopilot-signer.der"
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
